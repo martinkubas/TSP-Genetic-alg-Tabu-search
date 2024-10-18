@@ -3,42 +3,98 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
+cities = 20
+cityCoords = [(random.randrange(0, 200), random.randrange(0, 200)) for _ in range(cities)]  #suradnice miest
+"""cityCoords = [(130, 80), (190, 70), (50, 130), (120, 110), (140, 190),
+              (90, 60), (170, 30), (160, 120), (180, 40), (70, 50),
+              (200, 100), (40, 90), (100, 20), (30, 170), (10, 150),
+              (80, 140), (150, 180), (60, 200), (110, 160), (20, 10)]"""
+
+"""cityCoords = [(130, 80), (190, 70), (50, 130), (120, 110), (140, 190),
+    (90, 60), (170, 30), (160, 120), (180, 40), (70, 50),
+    (200, 100), (40, 90), (100, 20), (30, 170), (10, 150),
+    (80, 140), (150, 180), (60, 200), (110, 160), (20, 10),
+    (15, 95), (175, 75), (95, 195), (85, 175), (45, 105),
+    (155, 95), (165, 145), (135, 35), (185, 55), (25, 85)]"""
+
+"""cityCoords = [(130, 80), (190, 70), (50, 130), (120, 110), (140, 190),
+              (90, 60), (170, 30), (160, 120), (180, 40), (70, 50),
+              (200, 100), (40, 90), (100, 20), (30, 170), (10, 150),
+              (80, 140), (150, 180), (60, 200), (110, 160), (20, 10),
+              (15, 95), (175, 75), (95, 195), (85, 175), (45, 105),
+              (155, 95), (165, 145), (135, 35), (185, 55), (25, 85),
+              (75, 25), (195, 115), (115, 135), (65, 165), (105, 85),
+              (5, 115), (125, 155), (145, 45), (135, 165), (55, 145)]"""
+
 class Traveler:
     def __init__(self, tour):
         self.tour = tour
-        self.tourDst = totalTourDistance(self.tour, cityCoords)
+        self.tourDst = totalTourDistance(self.tour)
 
-def printGraph(gen, traveler=None):
+def main():
+    print("Choose algorithm: ")
+    print("1. Genetic Algorithm")
+    print("2. Tabu Search")
+    userChoice = input()
 
-    x_coords = [city[0] for city in cityCoords]
-    y_coords = [city[1] for city in cityCoords]
-    plt.scatter(x_coords, y_coords)
-    for i, (x, y) in enumerate(zip(x_coords, y_coords)):
+    if userChoice == "1":
+        bestTour = geneticAlg()
+        printGraph("Best genetic alg result", bestTour)
+        printPath(bestTour)
+    else:
+        bestTour = tabuSearch()
+        printGraph("Best tabu search result", bestTour)
+        printPath(bestTour)
+
+def printPathDecline(bestPathLengths, title="Path Length Decline", avgPathLengths = None):
+    generations = list(range(len(bestPathLengths)))
+    plt.plot(generations, bestPathLengths, label="Best Path Length", color="blue")
+    if avgPathLengths:
+        plt.plot(generations, avgPathLengths, label="Average Path Length", color="red")
+    plt.title(title)
+    plt.xlabel('Generation')
+    plt.ylabel('Path Length')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def printGraph(gTitle, traveler=None):
+
+    xCoords = [city[0] for city in cityCoords]
+    yCoords = [city[1] for city in cityCoords]
+    plt.scatter(xCoords, yCoords)
+    for i, (x, y) in enumerate(zip(xCoords, yCoords)):
         plt.text(x, y, str(i), fontsize=9, ha='right')
 
     if traveler:
         tour = traveler.tour
         for i in range(len(tour)):
-            plt.plot([x_coords[tour[i]], x_coords[tour[(i + 1) % len(tour)]]],
-                     [y_coords[tour[i]], y_coords[tour[(i + 1) % len(tour)]]], color='blue', linewidth=2)
-            plt.title(f"generation: {gen}")
+            plt.plot([xCoords[tour[i]], xCoords[tour[(i + 1) % len(tour)]]],
+                     [yCoords[tour[i]], yCoords[tour[(i + 1) % len(tour)]]], color='blue', linewidth=2)
+            plt.title(gTitle)
 
     plt.show()
 
-def printPath(traveler, cityCoords):
+def printPath(traveler):
     for i in range (0, len(traveler.tour)):
         if(i == len(traveler.tour) - 1):
-            print(distTwoCities(cityCoords[traveler.tour[i]], cityCoords[traveler.tour[0]]), traveler.tour[i], cityCoords[i],"->" ,traveler.tour[0], cityCoords[0])
+            print(f"path length: {distTwoCities(cityCoords[traveler.tour[i]], cityCoords[traveler.tour[0]])}",
+                  f"city1: {traveler.tour[i]}", f"{cityCoords[i]}",
+                  "->" ,
+                  f"city2: {traveler.tour[0]}", f"{cityCoords[0]}")
         else:
-            print(distTwoCities(cityCoords[traveler.tour[i]], cityCoords[traveler.tour[i+1]]), traveler.tour[i],cityCoords[i],"->" ,traveler.tour[i+1], cityCoords[i+1])
+            print(f"path length: {distTwoCities(cityCoords[traveler.tour[i]], cityCoords[traveler.tour[i + 1]])}",
+                  f"city1: {traveler.tour[i]}", f"{cityCoords[i]}",
+                  "->",
+                  f"city2: {traveler.tour[i + 1]}", f"{cityCoords[i + 1]}")
 
-    print(traveler.tourDst)
+    print(f"Total path length: {traveler.tourDst}")
 
 
 def distTwoCities(city1, city2):
     return int(np.sqrt(np.sum((np.array(city1) - np.array(city2))**2)))
 
-def totalTourDistance(tour, cityCoords):
+def totalTourDistance(tour):
     totalLen = 0
     for i in range (0, len(tour)):
         if(i == len(tour) - 1):
@@ -48,37 +104,39 @@ def totalTourDistance(tour, cityCoords):
     return totalLen
 
 
-def initPopulation(popSize, cities):
+def initPopulation(popSize): #vrati list cestovatelov s nahodnou permutaciou miest
     population = []
     for i in range(popSize):
         traveler = Traveler(list(np.random.permutation(cities)))
         population.append(traveler)
     return population
 
-def fitnessProbabilities(population):
+
+
+def fitnessRanks(population):   #vrati poradie v akom je kazdy cestovatel podla dlzky cesty
     populationDistances = [traveler.tourDst for traveler in population]
+
 
     maxDist = max(populationDistances)
     popFitness = [maxDist - dist for dist in populationDistances]   #odpocitame dlzku cesty od najdlhsej cesty, aby najkratsia cesta mala najvacsie cislo
-    popFitnessSum = sum(popFitness)
-    if popFitnessSum == 0:
-        return [1.0 / len(popFitness)] * len(popFitness)
-    probabilities = [fitness / popFitnessSum for fitness in popFitness]     #vypocet pravdepodobnosti, ze dana cesta sa dostane do dalsej generacie
 
-    return probabilities
+    sortedFitness = sorted(popFitness)
+    ranks = [sortedFitness.index(fitness) + 1 for fitness in popFitness]    #ulozi index sortedFitness do indexu cestovatela
 
-def fitnessRoulete(population, genFitnessProbs):
-    genFitnessProbs = np.array(genFitnessProbs)
-    fitnessProbsCumSum = genFitnessProbs.cumsum()
+    return ranks
 
-    rand = random.random()                               #random cislo medzi 0 a 1
-    boolProbability = fitnessProbsCumSum > rand               #hladame najblizsie vacsie cislo v kumulativnom sumari ako to random cislo
-    boolProbability = np.array(boolProbability)
+def fitnessRoulete(population, genFitnessRanks):    #vrati nahodne vybrateho cestujuceho na zaklade fitnessRanks funkcie
+    fitnessProbsCumSum = np.array(genFitnessRanks).cumsum()     #kumulativna suma [1, 3, 6, 10...]
 
-    return population[np.where(boolProbability)[0][0]] #vrati cestujuceho, ktoreho sme nahodne vybrali
+    total = fitnessProbsCumSum[-1]  #[-1] accesne posledny element, co je celkova suma
+
+    rand = random.randint(1, total)
+    for i, cumSum in enumerate(fitnessProbsCumSum):
+        if rand <= cumSum:
+            return population[i]
 
 
-def tournamentSelection(population, tournamentSize = 5):         #nahodne vybere 3 travelerov, a vrati toho, ktory ma najmensiu dlzku cesty
+def tournamentSelection(population, tournamentSize = 2):         #nahodne vybere tournamentSize travelerov, a vrati toho, ktory ma najmensiu dlzku cesty
     tournament = random.sample(population, tournamentSize)
     best = tournament[0]
     for traveler in tournament:
@@ -87,16 +145,21 @@ def tournamentSelection(population, tournamentSize = 5):         #nahodne vybere
 
     return best
 
-def mutate (traveler, mutRate):     #prejde vsetkymi mestami, a ked random cislo je mensie ako cislo mutacie, tak sa vymeni s druhym nahodnym mestom
-    for swapped1 in range (0, len(traveler.tour)):
-        if(random.random() < mutRate):
-            swapped2 = int(random.random() * len(traveler.tour))
-            traveler.tour[swapped1], traveler.tour[swapped2] = traveler.tour[swapped2], traveler.tour[swapped1]
+def mutate (traveler):     #nahodne vyberie zaciatocne a koncove mesto, a obrati poradie cesty medzi nimi
+        tour = traveler.tour
+        start, end = random.randint(0, len(traveler.tour) - 1), random.randint(0, len(traveler.tour) - 1)
+        if start > end:
+            start, end = end, start
 
-    traveler.tourDst = totalTourDistance(traveler.tour, cityCoords)
+        while start < end:
+            traveler.tour[start], traveler.tour[end] = traveler.tour[end], traveler.tour[start]
+            start += 1
+            end -= 1
+
+        traveler.tourDst = totalTourDistance(traveler.tour)
 
 
-def crossover(parent1, parent2):
+def crossover(parent1, parent2):        #vyberie segment cesty z prveho rodica a doplni zvysok z druheho
     size = len(parent1.tour)
 
     start = random.randint(0, size - 1)
@@ -121,125 +184,148 @@ def crossover(parent1, parent2):
     return Traveler(child_tour)
 
 
-def geneticAlg(cities, popSize, generations, mutRate):
-    population = initPopulation(popSize, cities)
-    print("Zadajte typ vyberu rodicov: ")
-    print("1. ruleta")
-    print("2. turnaj")
-    print("3. ruleta/turnaj")
+def geneticAlg():
+    popSize = 150
+    generations = 550
+    mutRate = 0.25
+    crossoverRate = 0.9
+    eliteSize = 3
+
+    bestPaths = []
+    avgPaths = []
+
+    population = initPopulation(popSize)    #inicializuje populaciu s random cestou
+    bestIndividual = min(population, key=lambda individual: individual.tourDst)
+    print("Enter type of selection: ")
+    print("1. rank roulette")
+    print("2. tournament")
     userinput = input()
 
     for generation in range(generations):
-        genFitnessProbs = fitnessProbabilities(population)
 
-        best_individual = min(population, key=lambda traveler: traveler.tourDst)
-        # Print the best individual's tour graph
-        if(generation % 50 == 0):
-            print(best_individual.tourDst)
-            printGraph(generation, best_individual)
+        population.sort(key=lambda traveler: traveler.tourDst)  #zoradenie populácie, pre neskorsi elitizmus
+
+        bestIndividual = population[0]                                                  #uchovanie najlepsieho
+        bestPaths.append(bestIndividual.tourDst)                                        #a priemerneho jedinca z generacie
+                                                                                        #pre neskorsie
+        avgPathLength = sum(traveler.tourDst for traveler in population) / popSize      #generovanie
+        avgPaths.append(avgPathLength)                                                  #grafu
+
+
+
+        if generation % 50 == 0:               #kazdu 50tu generaciu spravi graf najlepsieho jedinca
+            print(bestIndividual.tourDst)
+            printGraph(f"generation: {generation}", bestIndividual)
 
 
         parents = []
         for i in range(popSize):
-            if(userinput == "1"):
-                parents.append(fitnessRoulete(population, genFitnessProbs))
-            elif(userinput == "2"):
+            if userinput == "1":
+                genFitnessRanks = fitnessRanks(population)
+                parents.append(fitnessRoulete(population, genFitnessRanks))
+            elif userinput == "2":
                 parents.append(tournamentSelection(population))
             else:
-                if(i % 2 == 0):
-                    parents.append(fitnessRoulete(population, genFitnessProbs))
-                else:
-                    parents.append(tournamentSelection(population))
-
+                return 1
 
 
         newGen = []
-        for i in range(0, popSize, 2):
+        for i in range (0, eliteSize):      #najlepsi jedinci idu automaticky do novej generacie neznemeni
+            newGen.append(population[i])
+        for i in range(0, popSize):
             parent1 = parents[i]
-            if(i + 1 == popSize):
+
+            if i + 1 == popSize:
                 parent2 = parents[0]
             else:
                 parent2 = parents[i + 1]
-            child = crossover(parent1, parent2)
-            mutate(child, mutRate)
-            newGen.append(child)
+
+            if random.random() < crossoverRate:
+                child = crossover(parent1, parent2) #krizenie
+            else:
+                child = parent1
+
+            if random.random() < mutRate:
+                mutate(child)   #nasledna mutacia
+
+            newGen.append(child)    #zaradenie dietata do novej generacie
+
+
 
         population = newGen
 
+    printPathDecline(bestPaths,"Result of genetic algorithm", avgPaths)
+    return bestIndividual
 
-def tabuSearch(initialTour, maxIterations, tabuSize):
+def generateNeighbours(currentTraveler):
+    neighbors = []
+    for i in range(len(currentTraveler.tour)):
+        for j in range(i + 1, len(currentTraveler.tour)):
+            neighborTour = currentTraveler.tour.copy()
+            neighborTour[i], neighborTour[j] = neighborTour[j], neighborTour[i]  # swap miest
+            neighborTraveler = Traveler(neighborTour)
+            neighbors.append((neighborTraveler, (i, j)))
+
+    return neighbors
+
+def tabuSearch():
+    maxIterations = 1000
+    initialTabuSize = 20
+
+
+    initialTour = Traveler(list(np.random.permutation(cities)))         #nahodna permutacia miest pre inicializaciu
     bestTraveler = initialTour
-    bestDistance = totalTourDistance(bestTraveler.tour)
-
     currentTraveler = bestTraveler
     tabuList = []
+    bestPaths = []
 
     for iteration in range(maxIterations):
-        neighborhood = []
-        for i in range(len(currentTraveler.tour)):
-            for j in range(i + 1, len(currentTraveler.tour)):
-                neighborTour = currentTraveler.tour.copy()
-                neighborTour[i], neighborTour[j] = neighborTour[j], neighborTour[i]     #swap miest
-                neighborTraveler = Traveler(neighborTour)
-                neighborhood.append((neighborTraveler, (i, j)))
 
-        filteredNeighbors = []
-        for neighbor in neighborhood:
-            swap = neighbor[1]      #neigborhood[x] -> Traveler, (i, j) co boli swapnute
-            if swap not in tabuList:
-                filteredNeighbors.append(neighbor)
+        tabuSize = initialTabuSize + (iteration // 100) * 20        #zvacsenie tabuSize kazdych 100 iteracii
 
+        currentNeighbors = generateNeighbours(currentTraveler)
+
+        filteredNeighbors = [
+            neighbor for neighbor in currentNeighbors
+            if neighbor[1] not in tabuList or neighbor[0].tourDst < bestTraveler.tourDst    #ak neni v tabu liste, alebo je lepsi jak momentalna najlepsia trasa
+        ]
 
         if not filteredNeighbors:
-            break
+            filteredNeighbors = currentNeighbors
 
-        bestNeighbor = filteredNeighbors[0]  # Start by assuming the first one is the best
-        for neighbor in filteredNeighbors:
-            if neighbor[0].tourDst < bestNeighbor[0].tourDst:
-                bestNeighbor = neighbor
 
-        # Extract the best neighbor and its swap
-        currentTraveler, swap = bestNeighbor
+        bestNeighbor = min(filteredNeighbors, key=lambda neighbor: neighbor[0].tourDst)
 
-        tabuList.append(swap)   #zaradime momentalny swap miest do tabu listu, nech nemozu byt v takom poradi najblizsie
+        currentTraveler, swap = bestNeighbor[0], bestNeighbor[1]
+
+        tabuList.append(swap)   #zaradime momentalny swap(i,j) miest do tabu listu, nech nemozu byt v takom poradi najblizsie
 
         if len(tabuList) > tabuSize:
             tabuList.pop(0)
 
-        if currentTraveler.tourDst < bestDistance:
+        if currentTraveler.tourDst < bestTraveler.tourDst:
             bestTraveler = currentTraveler
-            bestDistance = currentTraveler.tourDst
 
+
+        if iteration % 50 == 0:
+            print(bestTraveler.tourDst)
+            printGraph(f"iteration: {iteration}", bestTraveler)
+            bestPaths.append(bestTraveler.tourDst)
+
+        if iteration % 50 == 0:             #kazdu x iteraciu sa cestujuci akokeby znovuinicializuje
+            currentTraveler = Traveler(list(np.random.permutation(cities)))
+            tabuList.clear()
+
+        bestPaths.append(bestTraveler.tourDst)
+
+
+
+    printPathDecline(bestPaths, "Decline of best Tabu search path")
     return bestTraveler
 
 
-def main():
-    cities = 20
-    popSize = 150
-    generations = 670
-    mutRate = 0.01
-    tabu_iterations = 1000
-    tabu_size = 10
-
-    # Initialize city coordinates
-    global cityCoords
-    cityCoords = [(random.randrange(0, 200), random.randrange(0, 200)) for _ in range(cities)]
-
-    printGraph(0)
-
-    print("Choose algorithm: ")
-    print("1. Genetic Algorithm")
-    print("2. Tabu Search")
-    user_choice = input()
-
-    if user_choice == "1":
-        geneticAlg(cities, popSize, generations, mutRate)
-    elif user_choice == "2":
-        initial_tour = Traveler(list(np.random.permutation(cities)))
-        best_tour = tabuSearch(initial_tour, tabu_iterations, tabu_size)
-        printPath(best_tour, cityCoords)
-        printGraph(0, best_tour)
 
 
-if __name__ == "__main__":
-    main()
+
+
+main()
